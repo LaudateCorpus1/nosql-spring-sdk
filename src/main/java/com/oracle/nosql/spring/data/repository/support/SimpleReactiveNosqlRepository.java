@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2020, 2021 Oracle and/or its affiliates.  All rights reserved.
+ * Copyright (c) 2020, 2022 Oracle and/or its affiliates.  All rights reserved.
  *
  * Licensed under the Universal Permissive License v 1.0 as shown at
  *  https://oss.oracle.com/licenses/upl/
@@ -13,6 +13,7 @@ import com.oracle.nosql.spring.data.core.query.Criteria;
 import com.oracle.nosql.spring.data.core.query.CriteriaQuery;
 import com.oracle.nosql.spring.data.core.query.CriteriaType;
 import com.oracle.nosql.spring.data.core.query.NosqlQuery;
+import com.oracle.nosql.spring.data.repository.NosqlRepository;
 import com.oracle.nosql.spring.data.repository.ReactiveNosqlRepository;
 
 import org.reactivestreams.Publisher;
@@ -156,6 +157,11 @@ public class SimpleReactiveNosqlRepository <T, ID extends Serializable>
     }
 
     @Override
+    public Mono<Void> deleteAllById(Iterable<? extends ID> ids) {
+        return Flux.fromIterable(ids).flatMap(this::deleteById).then();
+    }
+
+    @Override
     public Mono<Void> deleteAll(Iterable<? extends T> entities) {
         Assert.notNull(entities,
             "The given Iterable of entities must not be null!");
@@ -218,5 +224,22 @@ public class SimpleReactiveNosqlRepository <T, ID extends Serializable>
      */
     public void setConsistency(String consistency) {
         entityInformation.setConsistency(consistency);
+    }
+
+    /**
+     * @see NosqlRepository#getDurability()
+     */
+    @Override
+    public String getDurability() {
+        return SimpleNosqlRepository.convertDurability(
+            entityInformation.getDurability());
+    }
+
+    /**
+     * @see NosqlRepository#setDurability(String)
+     */
+    @Override
+    public void setDurability(String durability) {
+        entityInformation.setDurability(durability);
     }
 }

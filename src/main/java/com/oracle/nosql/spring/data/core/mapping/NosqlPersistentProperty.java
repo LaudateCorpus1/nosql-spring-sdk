@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2020, 2021 Oracle and/or its affiliates.  All rights reserved.
+ * Copyright (c) 2020, 2022 Oracle and/or its affiliates.  All rights reserved.
  *
  * Licensed under the Universal Permissive License v 1.0 as shown at
  *  https://oss.oracle.com/licenses/upl/
@@ -47,10 +47,10 @@ public interface NosqlPersistentProperty
             this.code = code;
         }
 
-//        public boolean isAtomic() {
-//            return code < 100;
-//        }
-//
+        public boolean isAtomic() {
+            return code > 1 && code < 100;
+        }
+
 //        public boolean isArrayLike() {
 //            return code >= 100 && code < 200;
 //        }

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2020, 2021 Oracle and/or its affiliates.  All rights reserved.
+ * Copyright (c) 2020, 2022 Oracle and/or its affiliates.  All rights reserved.
  *
  * Licensed under the Universal Permissive License v 1.0 as shown at
  *  https://oss.oracle.com/licenses/upl/
@@ -10,9 +10,7 @@ import java.util.Date;
 import java.util.Objects;
 
 import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.Persistent;
 
-@Persistent
 public class SensorIdDate {
     String name;
     int temp;

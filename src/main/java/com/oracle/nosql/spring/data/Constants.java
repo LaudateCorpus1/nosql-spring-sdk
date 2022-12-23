@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2020, 2021 Oracle and/or its affiliates.  All rights reserved.
+ * Copyright (c) 2020, 2022 Oracle and/or its affiliates.  All rights reserved.
  *
  * Licensed under the Universal Permissive License v 1.0 as shown at
  *  https://oss.oracle.com/licenses/upl/
@@ -21,11 +21,14 @@ public class Constants {
     public static final int DEFAULT_QUERY_CACHE_LIFETIME_MS = 1000 * 60 * 10; // 10min
     public static final int DEFAULT_TIMESTAMP_PRECISION = 3;
     public static final String DEFAULT_TABLE_CONSISTENCY = "EVENTUAL";
+    public static final String DEFAULT_TABLE_DURABILITY = "COMMIT_NO_SYNC";
 
     public static final int NOTSET_TABLE_READ_UNITS = -1;
     public static final int NOTSET_TABLE_WRITE_UNITS = -1;
     public static final int NOTSET_TABLE_STORAGE_GB = -1;
     public static final int NOTSET_TABLE_TIMEOUT_MS = 0;
+
+    public static final String USER_AGENT = "NoSQL-SpringSDK";
 
     private Constants() {}
 }

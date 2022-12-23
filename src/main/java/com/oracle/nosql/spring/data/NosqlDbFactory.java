@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2020, 2021 Oracle and/or its affiliates.  All rights reserved.
+ * Copyright (c) 2020, 2022 Oracle and/or its affiliates.  All rights reserved.
  *
  * Licensed under the Universal Permissive License v 1.0 as shown at
  *  https://oss.oracle.com/licenses/upl/
@@ -10,17 +10,26 @@ import java.io.IOException;
 
 import oracle.nosql.driver.AuthorizationProvider;
 import oracle.nosql.driver.NoSQLHandle;
+import oracle.nosql.driver.NoSQLHandleConfig;
 import oracle.nosql.driver.NoSQLHandleFactory;
 import oracle.nosql.driver.ops.Request;
 
 import com.oracle.nosql.spring.data.config.NosqlDbConfig;
+import com.oracle.nosql.spring.data.core.mapping.NosqlCapacityMode;
 
 import org.springframework.util.Assert;
 
+/**
+ * Factory class for connecting to an Oracle NoSQL Database on premise
+ * database or cloud service.
+ */
 public class NosqlDbFactory {
 
+    private static final String libraryVersion = findVersion();
+    private  static final String userAgent = findUserAgent();
+
     private final NosqlDbConfig config;
-    private NoSQLHandle handle;
+    private volatile NoSQLHandle handle;
 
     public NosqlDbFactory(NosqlDbConfig config) {
         Assert.notNull(config, "NosqlDbConfig should not be null.");
@@ -33,8 +42,20 @@ public class NosqlDbFactory {
         if ( handle == null ) {
             synchronized (this) {
                 if (handle == null) {
-                    handle = NoSQLHandleFactory
-                        .createNoSQLHandle(config.getNosqlHandleConfig());
+                    NoSQLHandleConfig nosqlConfig =
+                        config.getNosqlHandleConfig();
+                    String prevUserAgent =
+                        nosqlConfig.getExtensionUserAgent();
+                    String newUserAgent = null;
+                    if (prevUserAgent == null) {
+                        newUserAgent = userAgent;
+                    } else if (!prevUserAgent.contains(Constants.USER_AGENT)) {
+                        newUserAgent = userAgent + " " + prevUserAgent;
+                    } else {
+                        newUserAgent = prevUserAgent;
+                    }
+                    nosqlConfig.setExtensionUserAgent(newUserAgent);
+                    handle = NoSQLHandleFactory.createNoSQLHandle(nosqlConfig);
                 }
             }
         }
@@ -54,6 +75,9 @@ public class NosqlDbFactory {
             "have a non-null authorization provider.");
     }
 
+    /**
+     * Creates a NosqlDbFactory object for a cloud service configuration.
+     */
     public static NosqlDbFactory createCloudFactory(String endpoint,
         String configFile)
         throws IOException
@@ -62,14 +86,33 @@ public class NosqlDbFactory {
             configFile));
     }
 
+    /**
+     * Creates a NosqlDbFactory object for a cloud service configuration.
+     */
+    public static NosqlDbFactory createCloudFactory(String endpoint,
+    String configFile, String profileName)
+        throws IOException {
+        return new NosqlDbFactory(NosqlDbConfig.createCloudConfig(endpoint,
+            configFile, profileName));
+    }
+
+    /**
+     * Creates a NosqlDbFactory object for a cloud sim configuration.
+     */
     public static NosqlDbFactory createCloudSimFactory(String endpoint) {
         return new NosqlDbFactory(NosqlDbConfig.createCloudSimConfig(endpoint));
     }
 
+    /**
+     * Creates a NosqlDbFactory object for an on-prem server configuration.
+     */
     public static NosqlDbFactory createProxyFactory(String endpoint) {
         return new NosqlDbFactory(NosqlDbConfig.createProxyConfig(endpoint));
     }
 
+    /**
+     * Creates a NosqlDbFactory object for an on-prem server configuration.
+     */
     public static NosqlDbFactory createProxyFactory(String endpoint,
         String user, char[] password) {
         return new NosqlDbFactory(NosqlDbConfig.createProxyConfig(endpoint,
@@ -77,7 +120,7 @@ public class NosqlDbFactory {
     }
 
     /**
-     * Returns the capacity of the prepared query cache. By default this is set
+     * Returns the capacity of the prepared query cache. By default, this is set
      * to {@link Constants#DEFAULT_QUERY_CACHE_CAPACITY}.
      */
     public int getQueryCacheCapacity() {
@@ -86,22 +129,22 @@ public class NosqlDbFactory {
 
     /**
      * Returns the lifetime of the prepared query cache in milliseconds. By
-     * default this is set to
-     * {@link Constants#DEFAULT_QUERY_CACHE_LIFETIME_MS}.
+     * default, this is set to {@link Constants#DEFAULT_QUERY_CACHE_LIFETIME_MS}.
      */
     public int getQueryCacheLifetime() {
         return config.getQueryCacheLifetime();
     }
 
     /**
-     * Returns the table request timeout in milliseconds. By default this is
+     * Returns the table request timeout in milliseconds. By default, this is
      * set to {@link Constants#DEFAULT_TABLE_REQ_TIMEOUT_MS}
      */
     public int getTableReqTimeout() {
         return config.getTableReqTimeout();
     }
 
-    /** Returns the table request poll interval in milliseconds. By default this
+    /**
+     * Returns the table request poll interval in milliseconds. By default, this
      * is  set to {@link Constants#DEFAULT_TABLE_REQ_POLL_INTEVEL_MS}
      */
     public int getTableReqPollInterval() {
@@ -110,18 +153,69 @@ public class NosqlDbFactory {
 
     /**
      * Returns the precision of the Timestamp NoSQL DB type when creating a
-     * new table. By default this is set to
-     * {@link Constants#DEFAULT_TIMESTAMP_PRECISION}.
-     * <br>
+     * new table. By default, this is set to
+     * {@link Constants#DEFAULT_TIMESTAMP_PRECISION}.<p>
+     *
      * In the context of a CREATE TABLE statement, a precision must be
      * explicitly specified. This restriction is to prevent users from
      * inadvertently creating TIMESTAMP values with precision 9 (which takes
-     * more space) when in reality they don't need that high precision.
-     * <br>
-     * See <a href="https://docs.oracle.com/en/database/other-databases/nosql-database/20.2/sqlreferencefornosql/data-type-definitions.html">Timestamp documentation</a> for more details.
+     * more space) when in reality they don't need that high precision.<p>
+     *
+     * See <a href="https://docs.oracle.com/en/database/other-databases/nosql-database/20.2/sqlreferencefornosql/data-type-definitions.html">
+     * Timestamp documentation</a> for more details.
      */
     public int getTimestampPrecision() {
         return config.getTimestampPrecision();
+    }
+
+    /**
+     * Returns the config value {@link NosqlDbConfig#getDefaultStorageGB()}.
+     */
+    public int getDefaultStorageGB() {
+        return config.getDefaultStorageGB();
+    }
+
+    /**
+     * Returns the config value {@link NosqlDbConfig#getDefaultCapacityMode()}.
+     */
+    public NosqlCapacityMode getDefaultCapacityMode() {
+        return config.getDefaultCapacityMode();
+    }
+
+    /**
+     * Returns the config value {@link NosqlDbConfig#getDefaultReadUnits()}.
+     */
+    public int getDefaultReadUnits() {
+        return config.getDefaultReadUnits();
+    }
+
+    /**
+     * Returns the config value {@link NosqlDbConfig#getDefaultWriteUnits()}.
+     */
+    public int getDefaultWriteUnits() {
+        return config.getDefaultWriteUnits();
+    }
+
+    /**
+     * Pulls the version string from the manifest. The version is added
+     * by maven.
+     */
+    private static String findVersion() {
+        return NosqlDbFactory.class.getPackage().getImplementationVersion();
+    }
+
+    /**
+     * Returns the current version of the NoSQL DB Sprint Data SDK, as a
+     * string in an x.y.z format.
+     */
+    public static String getLibraryVersion() {
+        return libraryVersion;
+    }
+
+    private static String findUserAgent() {
+        String libVersion = findVersion();
+        return Constants.USER_AGENT +
+            (libVersion == null ? "" : "/" + libVersion);
     }
 
     /**
@@ -132,7 +226,7 @@ public class NosqlDbFactory {
     public static class CloudSimProvider implements AuthorizationProvider {
 
         private static final String id = "Bearer exampleId";
-        private static AuthorizationProvider provider =
+        private static final AuthorizationProvider provider =
             new CloudSimProvider();
 
         public static AuthorizationProvider getProvider() {

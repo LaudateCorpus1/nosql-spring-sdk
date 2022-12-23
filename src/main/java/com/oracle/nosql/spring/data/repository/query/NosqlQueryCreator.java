@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2020, 2021 Oracle and/or its affiliates.  All rights reserved.
+ * Copyright (c) 2020, 2022 Oracle and/or its affiliates.  All rights reserved.
  *
  * Licensed under the Universal Permissive License v 1.0 as shown at
  *  https://oss.oracle.com/licenses/upl/
@@ -23,7 +23,6 @@ import org.springframework.data.repository.query.parser.AbstractQueryCreator;
 import org.springframework.data.repository.query.parser.Part;
 import org.springframework.data.repository.query.parser.PartTree;
 import org.springframework.lang.Nullable;
-import org.springframework.util.Assert;
 
 
 public class NosqlQueryCreator  extends
@@ -86,8 +85,10 @@ public class NosqlQueryCreator  extends
 //        NosqlPersistentProperty property = path.getLeafProperty();
 
         for (int i = 0; i < part.getNumberOfArguments(); i++) {
-            Assert.isTrue(parameters.hasNext(),
-                "should not reach the end of iterator");
+            if (!parameters.hasNext()) {
+                throw new IllegalArgumentException("Expected parameter for " +
+                    "part: " + part.getProperty() + "[" + i + "]");
+            }
             values.add(parameters.next());
         }
 
